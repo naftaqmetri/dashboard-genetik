@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DASHBOARD POTENSI GENETIK v19.2</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* CSS sama persis dengan v19.1 */
+        :root {
+            --bg: #080e19; --surface: #0e1c30; --surface-hover: #162840; --text: #e2e8f0;
+            --text-secondary: #94a3b8; --border: rgba(255,255,255,0.08); --primary: #6366f1;
+            --primary-glow: rgba(99,102,241,0.3); --success: #10b981; --warning: #f59e0b;
+            --danger: #ef4444; --gold: #f59e0b; --purple: #8b5cf6; --accent-cyan: #00bcd4;
+            --accent-cyan-glow: rgba(0,188,212,0.2); --card-shadow: 0 4px 6px rgba(0,0,0,0.4);
+            --card-hover-shadow: 0 10px 15px -3px rgba(0,0,0,0.6); --sidebar-width: 360px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text);
+            min-height: 100vh; padding: 16px;
+            background-image: radial-gradient(ellipse at 20% 50%, #111827 0%, transparent 60%);
+        }
+        ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 6px; }
+        .btn {
+            border: 1px solid var(--border); background: var(--surface); color: var(--text);
+            padding: 8px 16px; border-radius: 10px; font-size: 0.875rem; font-weight: 600;
+            cursor: pointer; transition: 0.25s; display: inline-flex; align-items: center; gap: 6px;
+            font-family: inherit; backdrop-filter: blur(4px); box-shadow: 0 2px 8px rgba(0,0,0,0.3); white-space: nowrap;
+        }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.5); border-color: rgba(255,255,255,0.15); }
+        .btn-primary { background: linear-gradient(135deg, var(--primary), var(--purple)); color: #fff; border: none; box-shadow: 0 2px 12px var(--primary-glow); }
+        .btn-primary:hover { box-shadow: 0 4px 24px var(--primary-glow); transform: translateY(-2px) scale(1.02); }
+        .btn-cyan { background: linear-gradient(135deg, #0891b2, var(--accent-cyan)); color: #fff; border: none; box-shadow: 0 2px 12px var(--accent-cyan-glow); }
+        .btn-ghost { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); color: var(--text-secondary); }
+        .btn-ghost:hover { background: rgba(255,255,255,0.08); color: var(--text); }
+
+        .ribbon {
+            background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px;
+            padding: 8px 16px; display: flex; align-items: center; flex-wrap: wrap; gap: 12px;
+            flex-shrink: 0; backdrop-filter: blur(8px); transition: all 0.3s; overflow: hidden; max-height: 200px;
+        }
+        .ribbon.hidden { max-height: 0; padding-top: 0; padding-bottom: 0; border: none; opacity: 0; pointer-events: none; }
+        .ribbon-group { display: flex; align-items: center; gap: 6px; }
+        .ribbon-group-label { font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-right: 4px; white-space: nowrap; }
+        .ribbon-separator { width: 1px; height: 24px; background: rgba(255,255,255,0.1); margin: 0 4px; }
+        .btn-ribbon { background: transparent; border: none; color: var(--text-secondary); padding: 6px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 500; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 4px; font-family: inherit; }
+        .btn-ribbon:hover { background: rgba(255,255,255,0.06); color: var(--text); }
+        .btn-ribbon i { font-size: 0.9rem; }
+
+        .app-layout { display: flex; flex-direction: column; gap: 12px; height: calc(100vh - 32px); max-width: 1600px; margin: 0 auto; }
+        .top-header {
+            background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 12px 20px;
+            display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+            box-shadow: var(--card-shadow); backdrop-filter: blur(8px); border-bottom: 2px solid var(--primary);
+        }
+        .logo-section { display: flex; align-items: center; gap: 12px; }
+        .logo-section img { height: 44px; }
+        .version-badge { background: var(--primary); color: #fff; font-size: 0.65rem; padding: 4px 12px; border-radius: 20px; font-weight: 700; }
+        .header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .nav-buttons { display: flex; gap: 4px; }
+
+        .body-layout { display: flex; gap: 16px; flex: 1; min-height: 0; }
+        .sidebar {
+            width: var(--sidebar-width); flex-shrink: 0; background: var(--surface); border: 1px solid var(--border);
+            border-radius: 16px; padding: 12px; display: flex; flex-direction: column; overflow: hidden;
+            transition: width 0.3s, opacity 0.3s, padding 0.3s;
+        }
+        .sidebar.collapsed { width: 0; padding: 0; border: none; opacity: 0; pointer-events: none; }
+        .sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .sidebar-header h3 { font-size: 1rem; }
+        .sidebar-search input {
+            width: 100%; background: var(--surface-hover); border: 1px solid var(--border); border-radius: 8px;
+            padding: 8px; color: #fff; outline: none; margin-bottom: 8px; font-family: inherit;
+        }
+        .sidebar-list { flex: 1; overflow-y: auto; display: grid; grid-template-columns: 1fr; gap: 4px; align-content: start; }
+        .db-item {
+            display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; cursor: pointer;
+            border: 1px solid transparent; transition: background 0.2s;
+        }
+        .db-item:hover { background: var(--surface-hover); }
+        .db-item.active { background: var(--surface-hover); border-color: var(--accent-cyan); }
+        .db-item img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 1px solid var(--accent-cyan); background: #000; }
+        .db-item .name { font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .db-item .meta { font-size: 0.65rem; color: var(--text-secondary); }
+        .db-item .delete-btn { margin-left: auto; color: var(--danger); opacity: 0; transition: opacity 0.2s; cursor: pointer; }
+        .db-item:hover .delete-btn { opacity: 1; }
+
+        .main-content { flex: 1; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; min-width: 0; }
+        .upload-zone {
+            background: var(--surface); border: 2px dashed var(--border); border-radius: 16px; padding: 24px;
+            text-align: center; transition: 0.3s; cursor: pointer;
+        }
+        .upload-zone:hover { border-color: var(--primary); }
+        .upload-zone.drag-over { border-color: var(--primary); background: var(--surface-hover); }
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .card {
+            background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px;
+            box-shadow: var(--card-shadow); display: flex; flex-direction: column; break-inside: avoid;
+        }
+        .card-header {
+            font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); border-bottom: 1px solid var(--border);
+            padding-bottom: 6px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; text-transform: uppercase;
+        }
+        .card-header i { color: var(--accent-cyan); }
+        .identity-wrapper { display: flex; gap: 12px; }
+        .photo-area {
+            width: 120px; aspect-ratio: 2/3; border-radius: 10px; border: 2px solid var(--accent-cyan); overflow: hidden;
+            cursor: pointer; background: #000; flex-shrink: 0;
+        }
+        .photo-area img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .data-area { flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; }
+        .data-item { display: flex; justify-content: space-between; font-size: 0.75rem; padding: 2px 0; border-bottom: 1px solid var(--border); }
+        .data-item:last-child { border-bottom: none; }
+        .data-item .label { color: var(--text-secondary); }
+        .data-item .value { font-weight: 600; }
+        .flex-center { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
+        .chart-box { width: 90px; height: 90px; position: relative; }
+        .chart-box canvas { width: 100% !important; height: 100% !important; }
+        .iq-eq-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .iq-box, .eq-box { background: rgba(0,0,0,0.3); border-radius: 8px; padding: 8px; text-align: center; }
+        .iq-box .num { font-size: 1.5rem; font-weight: 800; color: var(--accent-cyan); }
+        .eq-box .num { font-size: 1.5rem; font-weight: 800; color: var(--success); }
+        .normal-box { background: rgba(233,30,99,0.15); padding: 4px 8px; border-radius: 6px; display: flex; align-items: center; gap: 6px; font-size: 0.75rem; margin-top: 6px; }
+        .personal-item { display: flex; align-items: flex-start; gap: 8px; font-size: 0.75rem; padding: 3px 0; border-bottom: 1px solid var(--border); }
+        .personal-item i { width: 18px; color: var(--accent-cyan); }
+        .priority-row { display: flex; justify-content: space-between; font-size: 0.625rem; margin-bottom: 3px; }
+        .p-bar-bg { width: 100%; height: 3px; background: rgba(255,255,255,0.06); border-radius: 2px; margin-bottom: 3px; }
+        .p-bar-fill { height: 100%; border-radius: 2px; }
+        .motivasi-wrap { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; }
+        .legend-item { display: flex; align-items: center; gap: 4px; font-size: 0.625rem; }
+        .dot { width: 6px; height: 6px; border-radius: 50%; }
+        .cara-box { background: rgba(0,0,0,0.3); border-radius: 8px; padding: 8px; font-size: 0.75rem; line-height: 1.6; color: var(--text-secondary); overflow-y: auto; }
+        .cara-box strong { color: var(--text); }
+        .ability-item { display: flex; justify-content: space-between; font-size: 0.625rem; padding: 2px 0; border-bottom: 1px solid var(--border); }
+        .ability-item .status { font-weight: 700; }
+        .status.high { color: var(--success); } .status.mid { color: var(--accent-cyan); } .status.low { color: var(--gold); }
+        .pola-box { background: rgba(0,0,0,0.3); border-radius: 8px; padding: 8px; font-size: 0.625rem; line-height: 1.5; color: var(--text-secondary); overflow-y: auto; }
+        .keterangan-box { background: rgba(0,0,0,0.3); border-radius: 8px; padding: 8px; font-size: 0.625rem; color: var(--text-secondary); }
+        .keterangan-table { width: 100%; border-collapse: collapse; font-size: 0.625rem; margin-top: 4px; }
+        .keterangan-table td, .keterangan-table th { border: 1px solid var(--border); padding: 4px; }
+        .gaya-kerja-single-col { display: flex; flex-direction: column; gap: 4px; }
+        .gaya-item { font-size: 0.625rem; display: flex; align-items: center; gap: 6px; padding: 2px 0; border-bottom: 1px solid var(--border); }
+        .gaya-item i { color: var(--accent-cyan); width: 16px; }
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(6px); }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: var(--surface); border-radius: 20px; padding: 20px; width: 95%; max-width: 1300px; height: 90vh;
+            display: flex; flex-direction: column; border: 1px solid var(--border); position: relative; overflow: hidden;
+        }
+        .modal .close-btn { position: absolute; top: 12px; right: 16px; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary); background: none; border: none; }
+        .modal .close-btn:hover { color: #fff; }
+        .ai-layout { display: flex; gap: 16px; flex: 1; min-height: 0; }
+        .ai-library-panel { width: 50%; display: flex; flex-direction: column; border-right: 1px solid var(--border); padding-right: 12px; overflow: hidden; }
+        .ai-chat-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .prompt-table-wrapper { flex: 1; overflow-y: auto; }
+        .prompt-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        .prompt-table th { background: var(--surface-hover); color: var(--text-secondary); padding: 8px; text-align: left; position: sticky; top: 0; }
+        .prompt-table td { padding: 8px; border-bottom: 1px solid var(--border); cursor: pointer; }
+        .prompt-table tr:hover { background: var(--surface-hover); }
+        .library-toolbar { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+        .ai-chat-messages { flex: 1; overflow-y: auto; background: var(--surface-hover); border-radius: 10px; padding: 10px; margin-bottom: 8px; font-size: 0.875rem; }
+        .ai-input-area { display: flex; flex-direction: column; gap: 8px; }
+        .ai-input-area textarea {
+            width: 100%; background: var(--surface-hover); border: 1px solid var(--border); border-radius: 10px; padding: 10px;
+            color: #fff; font-family: inherit; font-size: 0.875rem; resize: vertical; min-height: 80px;
+        }
+        .ai-input-buttons { display: flex; gap: 8px; justify-content: flex-end; }
+        .ai-links { display: flex; gap: 6px; margin-bottom: 10px; }
+        .toast {
+            position: fixed; bottom: 24px; right: 24px; background: var(--surface); color: var(--text); padding: 12px 24px;
+            border-radius: 14px; font-weight: 500; z-index: 9999; animation: slideUp 0.3s; box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            border: 1px solid var(--border); backdrop-filter: blur(8px); max-width: 90%;
+        }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+<div class="app-layout">
+    <div class="top-header no-print">
+        <div class="logo-section">
+            <img id="headerLogoImg" src="https://blogger.googleusercontent.com/img/a/AVvXsEguj3GaSHbNN6TZ8CjI9Mboo18AUxp8qVmS28Ewfr2Xi7xr73DrKcJde-B0Pl8luspmMj3OUyoPuOVQUthYjnjIoTzxCIHMMOo42NHnR_l50jKvumeMnp00Od_HWUJpH4N-icpY9CWwdrZ8SujhWdb7WrJ_g0vaujggUhxeAGlpj__z5K498FEQf5VE_Q=s2560" alt="Logo">
+            <div>
+                <h1 id="headerTitle" style="display:inline; font-size:1.25rem;">DASHBOARD POTENSI GENETIK</h1>
+                <span class="version-badge">v19.2</span>
+            </div>
+        </div>
+        <div class="header-actions">
+            <div class="nav-buttons">
+                <button class="btn btn-ghost" onclick="prevSubject()" title="Subjek sebelumnya"><i class="fas fa-chevron-left"></i></button>
+                <button class="btn btn-ghost" onclick="nextSubject()" title="Subjek berikutnya"><i class="fas fa-chevron-right"></i></button>
+            </div>
+            <button class="btn btn-cyan" onclick="document.getElementById('pdfInput').click()"><i class="fas fa-file-pdf"></i> Load PDF</button>
+            <button class="btn btn-warning" onclick="openSettingsModal()"><i class="fas fa-cog"></i></button>
+            <button class="btn btn-ghost" id="toggleSidebarBtn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+            <button class="btn btn-ghost" id="toggleRibbonBtn" onclick="toggleRibbon()"><i class="fas fa-chevron-up"></i></button>
+        </div>
+        <input type="file" id="pdfInput" accept=".pdf" hidden onchange="handlePdfLoad(event)">
+    </div>
+
+    <div class="ribbon no-print" id="ribbonContainer">
+        <div class="ribbon-group"><span class="ribbon-group-label">Import</span>
+            <button class="btn-ribbon" onclick="document.getElementById('pdfInput').click()"><i class="fas fa-file-pdf"></i> PDF</button>
+            <button class="btn-ribbon" onclick="document.getElementById('csvInput').click()"><i class="fas fa-file-csv"></i> CSV</button>
+            <button class="btn-ribbon" onclick="document.getElementById('jsonInput').click()"><i class="fas fa-file-code"></i> JSON</button>
+        </div>
+        <div class="ribbon-separator"></div>
+        <div class="ribbon-group"><span class="ribbon-group-label">Export</span>
+            <button class="btn-ribbon" onclick="exportCSV()"><i class="fas fa-file-csv"></i> CSV</button>
+            <button class="btn-ribbon" onclick="exportXLSX()"><i class="fas fa-file-excel"></i> XLSX</button>
+            <button class="btn-ribbon" onclick="exportJSON()"><i class="fas fa-file-code"></i> JSON</button>
+        </div>
+        <div class="ribbon-separator"></div>
+        <div class="ribbon-group"><span class="ribbon-group-label">Cetak</span>
+            <button class="btn-ribbon" onclick="printSubject()"><i class="fas fa-print"></i> Subjek</button>
+            <button class="btn-ribbon" onclick="printAllReport()"><i class="fas fa-file-alt"></i> Semua</button>
+        </div>
+        <div class="ribbon-separator"></div>
+        <div class="ribbon-group"><span class="ribbon-group-label">Utility</span>
+            <button class="btn-ribbon" onclick="resetDatabase()"><i class="fas fa-trash-alt"></i> Reset</button>
+            <button class="btn-ribbon" onclick="openAIModal()"><i class="fas fa-robot"></i> AI</button>
+            <button class="btn-ribbon" onclick="checkDuplicate()"><i class="fas fa-clone"></i> Data Ganda</button>
+            <button class="btn-ribbon" onclick="copySubjectData()"><i class="fas fa-copy"></i> Salin Data</button>
+            <button class="btn-ribbon" onclick="loadDemoData()"><i class="fas fa-flask"></i> Demo</button>
+        </div>
+        <input type="file" id="csvInput" accept=".csv" hidden onchange="handleCsvUpload(event)">
+        <input type="file" id="jsonInput" accept=".json" hidden onchange="handleJsonUpload(event)">
+    </div>
+
+    <div class="body-layout">
+        <div class="sidebar no-print" id="sidebarPanel">
+            <div class="sidebar-header">
+                <h3><i class="fas fa-database"></i> Database</h3>
+                <span id="dbCount">0</span>
+            </div>
+            <div class="sidebar-search"><input type="text" id="searchInput" placeholder="Cari subjek..." oninput="filterSubjects()"></div>
+            <div class="sidebar-list" id="databaseListContainer"></div>
+        </div>
+        <div class="main-content">
+            <div class="upload-zone no-print" id="dropZone">
+                <span class="upload-icon">📂</span>
+                <h3>Drop file di sini atau pilih file</h3>
+                <input type="file" id="fileInput" accept=".json,.csv" hidden>
+                <button class="btn btn-primary" style="margin-top:8px" onclick="document.getElementById('fileInput').click()">📁 Pilih File</button>
+            </div>
+            <div id="dashboard" style="display:none">
+                <div class="dashboard-grid" id="metricGrid"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="settingsModal">
+    <div class="modal" style="max-width:500px;height:auto">
+        <button class="close-btn" onclick="closeSettingsModal()">&times;</button>
+        <h2>⚙️ Pengaturan</h2>
+        <label>Judul Aplikasi</label><input type="text" id="setTitle">
+        <label>Tagline</label><input type="text" id="setTagline">
+        <label>API Key DeepSeek</label><input type="password" id="setApiKey" placeholder="sk-...">
+        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px">
+            <button class="btn btn-ghost" onclick="closeSettingsModal()">Batal</button>
+            <button class="btn btn-primary" onclick="saveSettings()">Simpan</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="aiModal">
+    <div class="modal">
+        <button class="close-btn" onclick="closeAIModal()">&times;</button>
+        <h2>🤖 Konsultasi AI & Prompt Library</h2>
+        <div class="ai-layout">
+            <div class="ai-library-panel">
+                <div class="library-toolbar">
+                    <button class="btn btn-ghost" onclick="addPromptForm()"><i class="fas fa-plus"></i> Tambah</button>
+                    <button class="btn btn-ghost" onclick="saveCurrentPromptToLibrary()"><i class="fas fa-save"></i> Simpan Aktif</button>
+                    <button class="btn btn-ghost" onclick="exportPromptJSON()"><i class="fas fa-download"></i> JSON</button>
+                    <button class="btn btn-ghost" onclick="exportPromptCSV()"><i class="fas fa-file-csv"></i> CSV</button>
+                    <button class="btn btn-ghost" onclick="exportPromptXLSX()"><i class="fas fa-file-excel"></i> XLSX</button>
+                    <button class="btn btn-ghost" onclick="document.getElementById('importPromptInput').click()"><i class="fas fa-upload"></i> Import</button>
+                    <input type="file" id="importPromptInput" accept=".json,.csv,.xlsx" hidden onchange="importPromptFile(event)">
+                </div>
+                <div class="prompt-table-wrapper">
+                    <table class="prompt-table"><thead><tr><th>ID</th><th>Judul</th><th>Kategori</th><th>Prompt</th><th>Aksi</th></tr></thead><tbody id="promptTableBody"></tbody></table>
+                </div>
+            </div>
+            <div class="ai-chat-panel">
+                <div class="ai-links">
+                    <button class="btn btn-cyan" onclick="window.open('https://chat.deepseek.com/','_blank')">DeepSeek</button>
+                    <button class="btn btn-cyan" onclick="window.open('https://chat.openai.com/','_blank')">ChatGPT</button>
+                    <button class="btn btn-cyan" onclick="window.open('https://gemini.google.com/','_blank')">Gemini</button>
+                </div>
+                <div class="ai-chat-messages" id="aiChatMessages"></div>
+                <div class="ai-input-area">
+                    <textarea id="aiPrompt" placeholder="Klik prompt atau tulis pertanyaan..."></textarea>
+                    <div class="ai-input-buttons">
+                        <button class="btn btn-primary" onclick="askAI()"><i class="fas fa-paper-plane"></i> Kirim</button>
+                        <button class="btn btn-ghost" onclick="clearAI()"><i class="fas fa-eraser"></i></button>
+                        <button class="btn btn-ghost" onclick="copyPromptToClipboard()"><i class="fas fa-copy"></i> Salin</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ==================== STATE ====================
+    let fullData = [], currentSubject, currentIndex = 0, charts = {}, photoStore = {}, aiChat = [];
+    const VERSION = '19.2';
+    let promptLibrary = [];
+    const SVG_SILUET = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3C/svg%3E";
+
+    const els = {
+        dashboard: document.getElementById('dashboard'),
+        dropZone: document.getElementById('dropZone'),
+        searchInput: document.getElementById('searchInput'),
+        metricGrid: document.getElementById('metricGrid'),
+        databaseListContainer: document.getElementById('databaseListContainer'),
+        dbCount: document.getElementById('dbCount'),
+        aiPrompt: document.getElementById('aiPrompt'),
+        aiChatMessages: document.getElementById('aiChatMessages'),
+        promptTableBody: document.getElementById('promptTableBody')
+    };
+
+    const defaultPrompts = [
+        { id: 1, title: "Analisis Genetik Komprehensif", prompt: "Lakukan analisis menyeluruh terhadap profil genetik subjek. Bahas dominasi otak, IQ/EQ, kecerdasan majemuk, dan implikasinya terhadap kehidupan.", kategori: "Analisis" },
+        { id: 2, title: "Rekomendasi Karir", prompt: "Berdasarkan profil genetik, berikan 5 rekomendasi karir yang paling cocok beserta alasan singkat.", kategori: "Karir" },
+        { id: 3, title: "Strategi Pembelajaran Optimal", prompt: "Rancang strategi belajar yang personal berdasarkan tipe belajar dan kecerdasan majemuk subjek.", kategori: "Pendidikan" },
+        { id: 4, title: "Kekuatan & Kelemahan Tim", prompt: "Analisis bagaimana profil ini akan berperilaku dalam tim. Identifikasi kekuatan dan potensi konflik.", kategori: "Tim" },
+        { id: 5, title: "Prediksi Perkembangan 5 Tahun", prompt: "Berdasarkan data, prediksi perkembangan subjek dalam 5 tahun ke depan dari sisi karir, hubungan, dan pribadi.", kategori: "Prediksi" },
+        { id: 6, title: "Meningkatkan EQ", prompt: "Subjek memiliki EQ tertentu. Berikan langkah konkret untuk meningkatkan kecerdasan emosional berdasarkan profil.", kategori: "Pengembangan Diri" },
+        { id: 7, title: "Dominasi Otak untuk Bisnis", prompt: "Jelaskan bagaimana dominasi otak subjek dapat dimanfaatkan dalam pengambilan keputusan bisnis.", kategori: "Bisnis" },
+        { id: 8, title: "Pola Asuh yang Cocok", prompt: "Jika subjek adalah anak, berikan saran pola asuh yang sesuai dengan karakter genetiknya.", kategori: "Parenting" },
+        { id: 9, title: "Pasangan Ideal", prompt: "Gambarkan tipe pasangan yang paling kompatibel berdasarkan profil genetik ini.", kategori: "Hubungan" },
+        { id: 10, title: "Mengatasi Kelemahan Spesifik", prompt: "Subjek memiliki kelemahan [sebutkan]. Bagaimana cara mengatasinya dengan memanfaatkan kekuatan genetiknya?", kategori: "Pengembangan Diri" },
+        { id: 11, title: "Peta Jalan Pendidikan", prompt: "Buat peta jalan pendidikan dari SD hingga perguruan tinggi yang sesuai dengan potensi genetik.", kategori: "Pendidikan" },
+        { id: 12, title: "Konseling untuk Orang Tua", prompt: "Orang tua subjek meminta saran. Berikan poin-poin penting yang harus mereka pahami tentang anak ini.", kategori: "Parenting" },
+        { id: 13, title: "Analisis SWOT Pribadi", prompt: "Buat analisis SWOT (Strengths, Weaknesses, Opportunities, Threats) berdasarkan data genetik.", kategori: "Analisis" },
+        { id: 14, title: "Pengaruh Lingkungan", prompt: "Diskusikan bagaimana lingkungan dapat memaksimalkan atau menghambat potensi genetik subjek.", kategori: "Lingkungan" },
+        { id: 15, title: "Refleksi Diri Terbimbing", prompt: "Bantu subjek melakukan refleksi diri. Ajukan 10 pertanyaan yang mendorongnya memahami dirinya sendiri.", kategori: "Refleksi" }
+    ];
+
+    // ==================== PROMPT LIBRARY (tidak berubah) ====================
+    function loadPromptLibrary() {
+        const saved = localStorage.getItem('nafta_prompt_library');
+        if (saved) { try { promptLibrary = JSON.parse(saved); if (!promptLibrary.length) promptLibrary = defaultPrompts; } catch { promptLibrary = defaultPrompts; } }
+        else { promptLibrary = defaultPrompts; }
+        savePromptLibrary();
+    }
+    function savePromptLibrary() { localStorage.setItem('nafta_prompt_library', JSON.stringify(promptLibrary)); }
+    function renderPromptTable() {
+        const tbody = els.promptTableBody;
+        if (!tbody) return;
+        tbody.innerHTML = promptLibrary.map(p => `
+            <tr onclick="usePrompt(${p.id})" style="cursor:pointer;">
+                <td>${p.id}</td><td>${p.title}</td><td>${p.kategori}</td>
+                <td>${p.prompt.substring(0,70)}...</td>
+                <td onclick="event.stopPropagation();">
+                    <button class="btn btn-ghost" onclick="editPrompt(${p.id})"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-ghost" onclick="deletePrompt(${p.id})"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>`).join('');
+    }
+    function usePrompt(id) { const p = promptLibrary.find(x => x.id === id); if (p && els.aiPrompt) els.aiPrompt.value = p.prompt; }
+    function addPromptForm() {
+        const title = prompt('Judul prompt:'); if (!title) return;
+        const text = prompt('Isi prompt:'); if (!text) return;
+        const kat = prompt('Kategori:') || 'Umum';
+        const newId = promptLibrary.length ? Math.max(...promptLibrary.map(p => p.id)) + 1 : 1;
+        promptLibrary.push({ id: newId, title, prompt: text, kategori: kat });
+        savePromptLibrary(); renderPromptTable(); showToast('✅ Prompt ditambahkan');
+    }
+    function saveCurrentPromptToLibrary() {
+        const text = els.aiPrompt?.value.trim(); if (!text) return alert('Tidak ada teks.');
+        const title = prompt('Simpan sebagai judul:'); if (!title) return;
+        const kat = prompt('Kategori:') || 'Kustom';
+        const newId = promptLibrary.length ? Math.max(...promptLibrary.map(p => p.id)) + 1 : 1;
+        promptLibrary.push({ id: newId, title, prompt: text, kategori: kat });
+        savePromptLibrary(); renderPromptTable(); showToast('✅ Prompt disimpan');
+    }
+    function editPrompt(id) {
+        const p = promptLibrary.find(x => x.id === id); if (!p) return;
+        const newTitle = prompt('Judul:', p.title); if (newTitle === null) return;
+        const newText = prompt('Prompt:', p.prompt); if (newText === null) return;
+        const newKat = prompt('Kategori:', p.kategori); if (newKat === null) return;
+        p.title = newTitle; p.prompt = newText; p.kategori = newKat;
+        savePromptLibrary(); renderPromptTable();
+    }
+    function deletePrompt(id) {
+        if (!confirm(`Hapus prompt ID ${id}?`)) return;
+        promptLibrary = promptLibrary.filter(p => p.id !== id);
+        savePromptLibrary(); renderPromptTable();
+    }
+    function exportPromptJSON() {
+        const blob = new Blob([JSON.stringify(promptLibrary, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+        a.download = `prompt_library_${new Date().toISOString().slice(0,10)}.json`; a.click();
+        showToast('📥 Prompt JSON diekspor');
+    }
+    function exportPromptCSV() {
+        const headers = ['id', 'title', 'prompt', 'kategori'];
+        const csv = [headers.join(','), ...promptLibrary.map(p => [p.id, p.title, `"${p.prompt.replace(/"/g,'""')}"`, p.kategori].join(','))].join('\n');
+        const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+        a.download = `prompt_library_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+        showToast('📥 Prompt CSV diekspor');
+    }
+    function exportPromptXLSX() {
+        const ws = XLSX.utils.json_to_sheet(promptLibrary);
+        const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Prompt Library');
+        XLSX.writeFile(wb, `prompt_library_${new Date().toISOString().slice(0,10)}.xlsx`);
+        showToast('📥 Prompt XLSX diekspor');
+    }
+    function importPromptFile(event) {
+        const file = event.target.files[0]; if (!file) return;
+        const reader = new FileReader();
+        const fileName = file.name.toLowerCase();
+        if (fileName.endsWith('.json')) {
+            reader.onload = e => { try {
+                const imported = JSON.parse(e.target.result);
+                if (Array.isArray(imported)) { promptLibrary = imported; savePromptLibrary(); renderPromptTable(); showToast(`✅ ${imported.length} prompt diimpor`); }
+                else alert('Format JSON tidak valid.');
+            } catch { alert('Gagal parsing JSON.'); } };
+            reader.readAsText(file);
+        } else if (fileName.endsWith('.csv')) {
+            reader.onload = e => {
+                const data = parseCSV(e.target.result);
+                if (!data.length) return alert('CSV kosong.');
+                promptLibrary = data.map(row => ({ id: parseInt(row.id)||0, title: row.title||'', prompt: row.prompt||'', kategori: row.kategori||'Umum' }));
+                savePromptLibrary(); renderPromptTable(); showToast(`✅ ${promptLibrary.length} prompt diimpor dari CSV`);
+            };
+            reader.readAsText(file);
+        } else if (fileName.endsWith('.xlsx')) {
+            reader.onload = e => {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheet];
+                const imported = XLSX.utils.sheet_to_json(worksheet);
+                promptLibrary = imported.map(row => ({ id: parseInt(row.id)||0, title: row.title||'', prompt: row.prompt||'', kategori: row.kategori||'Umum' }));
+                savePromptLibrary(); renderPromptTable(); showToast(`✅ ${promptLibrary.length} prompt diimpor dari XLSX`);
+            };
+            reader.readAsArrayBuffer(file);
+        } else { alert('Format file tidak didukung.'); }
+        event.target.value = '';
+    }
+
+    // ==================== DATA STORAGE (tidak berubah) ====================
+    function loadDataFromLocalStorage() {
+        const saved = localStorage.getItem('nafta_full_data');
+        if (!saved) return false;
+        try {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                fullData = parsed;
+                loadPhotoStore();
+                els.dashboard.style.display = 'block';
+                els.dropZone.style.display = 'none';
+                currentIndex = parseInt(localStorage.getItem('nafta_currentIndex') || '0');
+                if (currentIndex >= fullData.length) currentIndex = 0;
+                selectSubject(currentIndex);
+                renderDatabaseList();
+                return true;
+            }
+        } catch (e) {
+            console.warn('Data corrupt, resetting...');
+            localStorage.removeItem('nafta_full_data');
+        }
+        return false;
+    }
+    function saveDataToLocalStorage() {
+        localStorage.setItem('nafta_full_data', JSON.stringify(fullData));
+        localStorage.setItem('nafta_currentIndex', currentIndex.toString());
+    }
+    function loadPhotoStore() { try { photoStore = JSON.parse(localStorage.getItem('nafta_photo_store') || '{}'); } catch { photoStore = {}; } }
+    function savePhotoStore() { localStorage.setItem('nafta_photo_store', JSON.stringify(photoStore)); }
+    window.addEventListener('beforeunload', () => { saveDataToLocalStorage(); savePhotoStore(); });
+
+    function loadSettings() {
+        document.getElementById('headerTitle').textContent = localStorage.getItem('nafta_title') || 'DASHBOARD POTENSI GENETIK';
+        document.getElementById('headerLogoImg').src = localStorage.getItem('nafta_logo_url') || 'https://blogger.googleusercontent.com/img/a/AVvXsEguj3GaSHbNN6TZ8CjI9Mboo18AUxp8qVmS28Ewfr2Xi7xr73DrKcJde-B0Pl8luspmMj3OUyoPuOVQUthYjnjIoTzxCIHMMOo42NHnR_l50jKvumeMnp00Od_HWUJpH4N-icpY9CWwdrZ8SujhWdb7WrJ_g0vaujggUhxeAGlpj__z5K498FEQf5VE_Q=s2560';
+    }
+    loadSettings(); loadPhotoStore(); loadPromptLibrary();
+    if (!loadDataFromLocalStorage()) loadDemoData();
+
+    function loadDemoData() {
+        if (fullData.length > 0) return;
+        const demo = [{
+            nama: "NOVITA", id: "202605759", tanggal: "15 Februari 2026",
+            analyzer_note: "JEHJC-CJCEG 76-62-51 73-66-46",
+            dominasi_otak: { kiri: 51.66, kanan: 48.34, perbedaan: 3.32, dominasi: "Seimbang" },
+            iq: 126.38, eq: 118.25,
+            karakter: { normalitas: "Butuh perhatian lebih." },
+            komunikasi: "Lancar dan logis", inisiatif: "Suka menghitung-hitung", kebosanan: "Menikmati Proses",
+            pendapat: "Keputusannya Kuat.", analisa: "Cepat dan tepat.", kepatuhan: "Bisa menjalankan", level_unik: 52,
+            kecerdasan_majemuk: {
+                body_kinestetis: { nilai: 134, kategori: "Sangat Menonjol" },
+                bahasa: { nilai: 132, kategori: "Sangat Menonjol" },
+                logika: { nilai: 129, kategori: "Sangat Menonjol" }
+            },
+            kemampuan_alami: { pemahaman: { nilai: 137, kategori: "Sangat Menonjol" } },
+            pls: { cara_belajar: "Visual Teks", kelebihan: "Banyak keahlian", kelemahan: "Moody" },
+            pola_hidup: { laki_laki: "Karakter kuat...", perempuan: "Hidup tapi mudah dikuasai..." },
+            keterangan: "Ini adalah keterangan tambahan.",
+            motivasi: { afektif: 55, kognitif: 36, kritis: 9, reflektif: 0 }
+        }];
+        loadData(demo);
+    }
+
+    function loadData(data, isUserUpload = false) {
+        if (!data || !data.length) return;
+        const beforeCount = fullData.length;
+        if (fullData.length > 0 && isUserUpload) {
+            data.forEach(newSubj => {
+                const existingIndex = fullData.findIndex(existing => existing.nama === newSubj.nama && existing.id === newSubj.id);
+                if (existingIndex !== -1) {
+                    const existing = fullData[existingIndex];
+                    for (let key in newSubj) {
+                        if (existing[key] === undefined || existing[key] === '' || existing[key] === null || existing[key] === '_') {
+                            existing[key] = newSubj[key];
+                        } else if (typeof existing[key] === 'object' && existing[key] !== null && typeof newSubj[key] === 'object') {
+                            for (let subKey in newSubj[key]) {
+                                if (existing[key][subKey] === undefined || existing[key][subKey] === '' || existing[key][subKey] === '_') {
+                                    existing[key][subKey] = newSubj[key][subKey];
+                                }
+                            }
+                        }
+                    }
+                } else { fullData.push(newSubj); }
+            });
+            saveDataToLocalStorage(); selectSubject(0); renderDatabaseList();
+            const added = fullData.length - beforeCount;
+            if (added > 0) alert(`✅ Import selesai: ${added} data baru ditambahkan.\nData yang sudah ada hanya diisi field kosongnya.`);
+            else alert('ℹ️ Semua data sudah ada. Field kosong diisi jika tersedia.');
+        } else if (fullData.length === 0) {
+            fullData = data; saveDataToLocalStorage();
+            els.dashboard.style.display = 'block'; els.dropZone.style.display = 'none';
+            selectSubject(0); renderDatabaseList(); showToast(`✅ ${data.length} subjek dimuat`);
+        } else {
+            data.forEach(newSubj => fullData.push(newSubj));
+            saveDataToLocalStorage();
+        }
+    }
+
+    function deleteSubject(index) {
+        if (index < 0 || index >= fullData.length) return;
+        const name = fullData[index].nama;
+        if (!confirm(`Hapus subjek "${name}"?`)) return;
+        fullData.splice(index, 1); delete photoStore[name];
+        savePhotoStore(); saveDataToLocalStorage();
+        if (fullData.length === 0) {
+            els.dashboard.style.display = 'none'; els.dropZone.style.display = 'block'; currentIndex = 0;
+        } else {
+            if (currentIndex >= fullData.length) currentIndex = fullData.length - 1;
+            selectSubject(currentIndex);
+        }
+        renderDatabaseList();
+    }
+
+    function resetDatabase() {
+        if (fullData.length === 0) return alert('Database kosong.');
+        if (!confirm('Hapus semua data?')) return;
+        fullData = []; photoStore = {};
+        savePhotoStore(); localStorage.removeItem('nafta_full_data');
+        els.dashboard.style.display = 'none'; els.dropZone.style.display = 'block';
+        renderDatabaseList(); showToast('🗑️ Database di-reset');
+    }
+
+    function checkDuplicate() {
+        if (!fullData.length) return alert('Tidak ada data.');
+        const seen = new Map(); const duplicates = [];
+        fullData.forEach((d, i) => {
+            const key = `${d.nama}__${d.id}`;
+            if (seen.has(key)) duplicates.push({ index1: seen.get(key), index2: i, nama: d.nama, id: d.id });
+            else seen.set(key, i);
+        });
+        if (duplicates.length === 0) alert('✅ Tidak ada data ganda.');
+        else {
+            const msg = duplicates.map(d => `${d.nama} (ID: ${d.id}) → indeks ${d.index1+1} & ${d.index2+1}`).join('\n');
+            alert(`⚠️ Ditemukan ${duplicates.length} data ganda:\n\n${msg}`);
+        }
+    }
+
+    // ==================== NAVIGASI DATABASE ====================
+    function prevSubject() {
+        if (fullData.length === 0) return;
+        const newIndex = currentIndex - 1;
+        if (newIndex >= 0) selectSubject(newIndex);
+    }
+
+    function nextSubject() {
+        if (fullData.length === 0) return;
+        const newIndex = currentIndex + 1;
+        if (newIndex < fullData.length) selectSubject(newIndex);
+    }
+
+    // ==================== SIDEBAR (tidak berubah) ====================
+    function toggleSidebar() {
+        document.getElementById('sidebarPanel').classList.toggle('collapsed');
+    }
+
+    function renderDatabaseList() {
+        const container = els.databaseListContainer;
+        els.dbCount.textContent = fullData.length;
+        if (!fullData.length) { container.innerHTML = '<div style="color:var(--text-secondary);text-align:center;padding:20px;">Belum ada data</div>'; return; }
+        container.innerHTML = fullData.map((d, i) => {
+            const active = i === currentIndex ? 'active' : '';
+            const src = photoStore[d.nama] || SVG_SILUET;
+            return `<div class="db-item ${active}" onclick="selectSubject(${i})">
+                <img src="${src}" onclick="event.stopPropagation(); triggerPhotoUpload(${i})">
+                <div style="flex:1; min-width:0;">
+                    <div class="name">${d.nama||'?'}</div>
+                    <div class="meta">${d.id||'-'} • ${d.tanggal||''}</div>
+                </div>
+                <div class="delete-btn" onclick="event.stopPropagation(); deleteSubject(${i})"><i class="fas fa-trash-alt"></i></div>
+                <input type="file" accept="image/*" onchange="handleDBPhoto(${i}, this)" style="display:none;">
+            </div>`;
+        }).join('');
+    }
+
+    function triggerPhotoUpload(index) {
+        const inputs = els.databaseListContainer.querySelectorAll('input[type="file"]');
+        if (inputs[index]) inputs[index].click();
+    }
+
+    function handleDBPhoto(index, input) {
+        if (!input.files || !input.files[0]) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            photoStore[fullData[index].nama] = e.target.result;
+            savePhotoStore(); renderDatabaseList();
+            if (index === currentIndex) selectSubject(index);
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+
+    function filterSubjects() {
+        const kw = els.searchInput.value.trim().toLowerCase();
+        if (!kw) { renderDatabaseList(); return; }
+        const filtered = fullData.filter(d => (d.nama || '').toLowerCase().includes(kw));
+        const container = els.databaseListContainer;
+        if (!filtered.length) { container.innerHTML = '<div style="color:var(--text-secondary);text-align:center;padding:20px;">Tidak ditemukan</div>'; return; }
+        container.innerHTML = filtered.map((d, i) => {
+            const idx = fullData.indexOf(d);
+            const active = idx === currentIndex ? 'active' : '';
+            const src = photoStore[d.nama] || SVG_SILUET;
+            return `<div class="db-item ${active}" onclick="selectSubject(${idx})">
+                <img src="${src}" onclick="event.stopPropagation(); triggerPhotoUpload(${idx})">
+                <div style="flex:1; min-width:0;"><div class="name">${d.nama||'?'}</div><div class="meta">${d.id||'-'} • ${d.tanggal||''}</div></div>
+                <div class="delete-btn" onclick="event.stopPropagation(); deleteSubject(${idx})"><i class="fas fa-trash-alt"></i></div>
+                <input type="file" accept="image/*" onchange="handleDBPhoto(${idx}, this)" style="display:none;">
+            </div>`;
+        }).join('');
+    }
+
+    // ==================== SELECT & RENDER (tidak berubah) ====================
+    function selectSubject(i) {
+        if (i < 0 || i >= fullData.length) return;
+        currentIndex = i; currentSubject = fullData[i];
+        saveDataToLocalStorage(); renderDatabaseList(); renderAll(currentSubject);
+    }
+
+    function renderAll(d) {
+        const cards = [
+            renderIdentity(d), renderPersonal(d), renderIQEQ(d), renderBrain(d),
+            renderPriority(d), renderKemampuanAlami(d), renderMotivation(d), renderCaraBerpikir(d),
+            renderKecerdasanMajemuk(d), renderGayaKerja(d), renderPolaHidupLaki(d), renderPolaHidupPerempuan(d)
+        ];
+        els.metricGrid.innerHTML = cards.join('');
+        requestAnimationFrame(() => updateCharts(d));
+    }
+
+    function updateCharts(d) {
+        const brainCanvas = document.getElementById('brainChart');
+        if (brainCanvas) {
+            if (charts.brain) charts.brain.destroy();
+            const otak = d.dominasi_otak || { kiri: 50, kanan: 50 };
+            charts.brain = new Chart(brainCanvas, {
+                type: 'doughnut',
+                data: { labels: ['Otak Kiri', 'Otak Kanan'], datasets: [{ data: [otak.kiri || 50, otak.kanan || 50], backgroundColor: ['#00bcd4', '#ff9800'], borderWidth: 0 }] },
+                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } }, cutout: '55%' }
+            });
+        }
+        const motivCanvas = document.getElementById('motivationChart');
+        if (motivCanvas) {
+            if (charts.motivation) charts.motivation.destroy();
+            const m = d.motivasi || { afektif: 0, kognitif: 0, kritis: 0, reflektif: 0 };
+            charts.motivation = new Chart(motivCanvas, {
+                type: 'pie',
+                data: { labels: ['Afektif', 'Kognitif', 'Kritis', 'Reflektif'], datasets: [{ data: [m.afektif || 0, m.kognitif || 0, m.kritis || 0, m.reflektif || 0], backgroundColor: ['#2196f3', '#4caf50', '#ff9800', '#9e9e9e'], borderWidth: 0 }] },
+                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } } }
+            });
+        }
+    }
+
+    // ==================== RENDER FUNCTIONS (tidak berubah) ====================
+    function parseAnalyzerNote(note) {
+        if (!note || typeof note !== 'string') return { pola: '-', atdKiri: '-', atdKanan: '-' };
+        const parts = note.split(/\s+/);
+        return { pola: (parts[0]||'').replace(/[^A-Za-z\-]/g, '') || '-', atdKiri: (parts[1]||'').replace(/[^\d\-]/g, '') || '-', atdKanan: (parts[2]||'').replace(/[^\d\-]/g, '') || '-' };
+    }
+
+    function renderIdentity(d) {
+        const src = photoStore[d.nama] || SVG_SILUET;
+        const parsed = parseAnalyzerNote(d.analyzer_note);
+        return `<div class="card"><div class="card-header"><i class="fas fa-id-card"></i> IDENTITY & PROFILE</div>
+        <div class="identity-wrapper">
+            <div class="photo-area" onclick="document.getElementById('profileInput').click()">
+                <img id="profileImg" src="${src}"><div class="hint">Klik ganti</div>
+                <input type="file" id="profileInput" accept="image/*" onchange="handleProfilePhoto(this)">
+            </div>
+            <div class="data-area">
+                <div class="data-item"><span class="label">ID</span><span class="value">${d.id||'-'}</span></div>
+                <div class="data-item"><span class="label">Nama</span><span class="value">${d.nama||'-'}</span></div>
+                <div class="data-item"><span class="label">Gender</span><span class="value">${d.gender||'Laki-laki'}</span></div>
+                <div class="data-item"><span class="label">Tgl Analisa</span><span class="value">${d.tanggal||'-'}</span></div>
+                <div class="data-item"><span class="label">Pola SJB</span><span class="value">${parsed.pola}</span></div>
+                <div class="data-item"><span class="label">ATD Kiri</span><span class="value">${parsed.atdKiri}</span></div>
+                <div class="data-item"><span class="label">ATD Kanan</span><span class="value">${parsed.atdKanan}</span></div>
+            </div>
+        </div></div>`;
+    }
+
+    function handleProfilePhoto(input) {
+        if (!input.files || !input.files[0]) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            photoStore[currentSubject.nama] = e.target.result;
+            savePhotoStore(); renderDatabaseList(); renderAll(currentSubject);
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+
+    function renderBrain(d) {
+        const otak = d.dominasi_otak || { kiri: 0, kanan: 0, dominasi: 'Seimbang', perbedaan: 0 };
+        return `<div class="card"><div class="card-header">DOMINASI OTAK</div>
+        <div class="flex-center">
+            <div class="chart-box"><canvas id="brainChart"></canvas></div>
+            <div class="brain-desc">
+                <div><span class="brain-val" style="color:#00bcd4;">Otak Kiri</span> ${otak.kiri||0}%</div>
+                <div><span class="brain-val" style="color:#ff9800;">Otak Kanan</span> ${otak.kanan||0}%</div>
+                <div style="color:#94a3b8;">Perbedaan <span style="color:white;">${(otak.perbedaan||0).toFixed(2)}%</span></div>
+                <div style="font-weight:700; color:#ff9800;">Dominasi ${otak.dominasi||'Seimbang'}</div>
+            </div>
+        </div></div>`;
+    }
+
+    function renderIQEQ(d) {
+        return `<div class="card"><div class="card-header">HASIL IQ DAN EQ</div>
+        <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
+            <div class="iq-eq-grid">
+                <div class="iq-box"><div style="font-size:0.625rem; color:#94a3b8;">IQ</div><span class="num">${d.iq||0}</span></div>
+                <div class="eq-box"><div style="font-size:0.625rem; color:#94a3b8;">EQ</div><span class="num">${d.eq||0}</span></div>
+            </div>
+            <div class="normal-box"><i class="fas fa-exclamation-triangle" style="color:#e91e63;"></i> <span style="font-weight:bold;">${d.karakter?.normalitas||'Butuh perhatian lebih'}</span></div>
+            <div style="display:flex; justify-content:space-between; font-size:0.625rem; margin-top:4px; color:#94a3b8;">
+                <span><i class="fas fa-comment"></i> Komunikasi</span><span style="color:white;">${d.komunikasi||'Normal'}</span>
+            </div>
+        </div></div>`;
+    }
+
+    function renderPersonal(d) {
+        return `<div class="card"><div class="card-header"><i class="fas fa-user-tie"></i> TIPE PERSONAL</div>
+        <div style="flex:1; display:flex; flex-direction:column; justify-content:space-evenly;">
+            <div class="personal-item"><i class="fas fa-lightbulb"></i><div><strong>Tipe Personal</strong><div class="desc">${d.tipe_personal||'_'}</div></div></div>
+            <div class="personal-item"><i class="fas fa-rocket"></i><div><strong>Inisiatif</strong><div class="desc">${d.inisiatif||'Baik'}</div></div></div>
+            <div class="personal-item"><i class="fas fa-compass"></i><div><strong>Kebosanan</strong><div class="desc">${d.kebosanan||'Menyukai suasana baru'}</div></div></div>
+            <div class="personal-item"><i class="fas fa-user-check"></i><div><strong>Pendapat</strong><div class="desc">${d.pendapat||'Sulit menerima masukan'}</div></div></div>
+            <div class="personal-item"><i class="fas fa-shield-alt"></i><div><strong>Kepatuhan</strong><div class="desc">${d.kepatuhan||'Tidak suka diperintah'}</div></div></div>
+        </div></div>`;
+    }
+
+    function renderPriority(d) {
+        const prioData = [
+            { name: 'Sosial', val: 14.29, color: '#00bcd4' }, { name: 'Keuntungan', val: 28.57, color: '#4caf50' },
+            { name: 'Popularitas', val: 0.00, color: '#9e9e9e' }, { name: 'Pemenang', val: 0.00, color: '#9e9e9e' },
+            { name: 'Kebebasan', val: 14.29, color: '#ff9800' }, { name: 'Kedamaian', val: 0.00, color: '#9e9e9e' },
+            { name: 'Pengetahuan', val: 14.29, color: '#2196f3' }, { name: 'Kemewahan', val: 0.00, color: '#9e9e9e' },
+            { name: 'Kenyamanan', val: 0.00, color: '#9e9e9e' }, { name: 'Distinksi', val: 0.00, color: '#9e9e9e' },
+            { name: 'Kekuasaan', val: 0.00, color: '#9e9e9e' }, { name: 'Pengakuan', val: 14.29, color: '#e91e63' },
+            { name: 'Sanjungan', val: 28.57, color: '#ffeb3b' }
+        ];
+        return `<div class="card"><div class="card-header"><i class="fas fa-chart-bar"></i> PRIORITAS</div>
+        <div style="flex:1; overflow-y:auto;">
+            ${prioData.map(p => `<div class="priority-row"><span>${p.name}</span><span class="p-val">${p.val}%</span></div>
+            <div class="p-bar-bg"><div class="p-bar-fill" style="width:${p.val}%; background:${p.color};"></div></div>`).join('')}
+        </div></div>`;
+    }
+
+    function renderMotivation(d) {
+        const m = d.motivasi || { afektif: 0, kognitif: 0, kritis: 0, reflektif: 0 };
+        return `<div class="card"><div class="card-header"><i class="fas fa-chart-pie"></i> MOTIVASI</div>
+        <div class="motivasi-wrap">
+            <div class="chart-box"><canvas id="motivationChart"></canvas></div>
+            <div>
+                <div class="legend-item"><span class="dot" style="background:#2196f3;"></span> Afektif ${m.afektif||0}%</div>
+                <div class="legend-item"><span class="dot" style="background:#4caf50;"></span> Kognitif ${m.kognitif||0}%</div>
+                <div class="legend-item"><span class="dot" style="background:#ff9800;"></span> Kritis ${m.kritis||0}%</div>
+                <div class="legend-item"><span class="dot" style="background:#9e9e9e;"></span> Reflektif ${m.reflektif||0}%</div>
+            </div>
+        </div></div>`;
+    }
+
+    function renderCaraBerpikir(d) {
+        const p = d.pls || {};
+        return `<div class="card"><div class="card-header"><i class="fas fa-head-side-virus"></i> TIPE BELAJAR / CARA BERPIKIR</div>
+        <div class="cara-box">
+            <p><strong>Cara Belajar:</strong> ${p.cara_belajar||'Penalaran. Kreativitas.'}</p>
+            <p><strong>Kelebihan:</strong> ${p.kelebihan||'Bisa melihat Tujuan lebih cepat.'}</p>
+            <p><strong>Kelemahan:</strong> ${p.kelemahan||'Kurang Teliti, Moody.'}</p>
+            <p style="margin-top:6px; font-size:0.625rem; border-top:1px solid var(--border); padding-top:6px;"><i class="fas fa-info-circle"></i> Sumber: PLS</p>
+        </div></div>`;
+    }
+
+    function renderKecerdasanMajemuk(d) {
+        const list = d.kecerdasan_majemuk || {};
+        const items = Object.entries(list).map(([k, v]) => {
+            let cls = 'low'; if (v.kategori?.includes('Sangat Menonjol')) cls = 'high'; else if (v.kategori?.includes('Menonjol')) cls = 'mid';
+            return `<div class="ability-item"><span>${k.replace(/_/g,' ')}</span><span class="status ${cls}">${v.kategori||'_'} ${v.nilai||0}</span></div>`;
+        }).join('');
+        return `<div class="card"><div class="card-header"><i class="fas fa-brain"></i> KECERDASAN MAJEMUK <span style="font-weight:400;font-size:0.625rem;">(${Object.keys(list).length}/9)</span></div>
+        <div style="flex:1; overflow-y:auto;">${items || '<div style="color:var(--text-secondary); padding:8px;">⚠️ Tidak ada data</div>'}</div></div>`;
+    }
+
+    function renderKemampuanAlami(d) {
+        const list = d.kemampuan_alami || {};
+        const items = Object.entries(list).map(([k, v]) => {
+            let cls = 'low'; if (v.kategori?.includes('Sangat Menonjol')) cls = 'high'; else if (v.kategori?.includes('Menonjol')) cls = 'mid';
+            return `<div class="ability-item"><span>${k.replace(/_/g,' ')}</span><span class="status ${cls}">${v.kategori||'_'} ${v.nilai||0}</span></div>`;
+        }).join('');
+        return `<div class="card"><div class="card-header"><i class="fas fa-star"></i> KEMAMPUAN ALAMI <span style="font-weight:400;font-size:0.625rem;">(${Object.keys(list).length}/18)</span></div>
+        <div style="flex:1; overflow-y:auto;">${items || '<div style="color:var(--text-secondary); padding:8px;">⚠️ Tidak ada data</div>'}</div></div>`;
+    }
+
+    function renderGayaKerja(d) {
+        const gayaData = [
+            { name: 'Pembangun', key: 'pembangun', icon: 'fa-users' }, { name: 'Pengambil Kesimpulan', key: 'pengambil_kesimpulan', icon: 'fa-check-circle' },
+            { name: 'Pelaku', key: 'pelaku', icon: 'fa-running' }, { name: 'Komunikator', key: 'komunikator', icon: 'fa-comments' },
+            { name: 'Deal Maker', key: 'deal_maker', icon: 'fa-handshake' }, { name: 'Pedagang', key: 'pedagang', icon: 'fa-store' },
+            { name: 'Pencipta', key: 'pencipta', icon: 'fa-lightbulb' }
+        ];
+        const items = gayaData.map(g => {
+            const val = d.gaya_kerja?.[g.key];
+            const display = val && val.kategori !== '_' ? `${val.kategori||'?'} (${val.nilai||0})` : 'Tidak ditemukan';
+            const color = val?.kategori === 'Sangat Menonjol' ? 'var(--success)' : val?.kategori === 'Menonjol' ? 'var(--accent-cyan)' : 'var(--text-secondary)';
+            return `<div class="gaya-item"><i class="fas ${g.icon}" style="color:${color};"></i> <strong>${g.name}:</strong> ${display}</div>`;
+        }).join('');
+        return `<div class="card"><div class="card-header"><i class="fas fa-users-cog"></i> GAYA KERJA</div>
+        <div style="flex:1; overflow-y:auto;"><div class="gaya-kerja-single-col">${items}</div></div></div>`;
+    }
+
+    function renderPolaHidupLaki(d) {
+        const pola = d.pola_hidup || {};
+        return `<div class="card"><div class="card-header"><i class="fas fa-male"></i> POLA HIDUP (LAKI-LAKI)</div>
+        <div class="pola-box" style="flex:1; overflow-y:auto;"><p>${pola.laki_laki || 'Anda berguna dan mampu.'}</p></div>
+        ${d.keterangan ? `<div class="keterangan-box" style="margin-top:8px;"><strong>📝 Keterangan:</strong><table class="keterangan-table"><tbody><tr><td>${d.keterangan||''}</td></tr></tbody></table></div>` : ''}
+        </div>`;
+    }
+
+    function renderPolaHidupPerempuan(d) {
+        const pola = d.pola_hidup || {};
+        return `<div class="card"><div class="card-header"><i class="fas fa-female"></i> POLA HIDUP (PEREMPUAN)</div>
+        <div class="pola-box" style="flex:1; overflow-y:auto;"><p>${pola.perempuan || 'Anda compliant dan blak-blakan.'}</p></div></div>`;
+    }
+
+    // ==================== CETAK (tidak berubah) ====================
+    function printSubject() {
+        if (!currentSubject) return alert('Pilih subjek dulu.');
+        const d = currentSubject;
+        const cards = [
+            renderIdentity(d), renderPersonal(d), renderIQEQ(d), renderBrain(d),
+            renderPriority(d), renderKemampuanAlami(d), renderMotivation(d), renderCaraBerpikir(d),
+            renderKecerdasanMajemuk(d), renderGayaKerja(d), renderPolaHidupLaki(d), renderPolaHidupPerempuan(d)
+        ];
+        const html = `<html><head><title>Cetak Subjek: ${d.nama}</title>
+        <style>@page { size: portrait; margin: 1cm; } body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; color: #0f172a; }
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .card { border: 1px solid #ddd; background: white; padding: 16px; border-radius: 12px; break-inside: avoid; page-break-inside: avoid; height: auto; }
+        .card-header { font-size: 11px; font-weight: 700; color: #64748b; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 8px; text-transform: uppercase; }
+        .data-item { display: flex; justify-content: space-between; font-size: 11px; padding: 2px 0; border-bottom: 1px solid #e2e8f0; }
+        .chart-box { width: 90px; height: 90px; } .pola-box { font-size: 10px; } .gaya-item { font-size: 10px; } img { max-width: 80px; }</style></head>
+        <body><h2>Dashboard Potensi Genetik - ${d.nama} (${d.id})</h2><div class="dashboard-grid">${cards.join('')}</div></body></html>`;
+        const w = window.open('', '_blank'); w.document.write(html); w.document.close();
+        setTimeout(() => w.print(), 500);
+    }
+
+    function printAllReport() {
+        if (!fullData.length) return alert('Tidak ada data.');
+        let html = `<html><head><title>Laporan Database Subjek</title>
+        <style>table { border-collapse: collapse; width: 100%; font-size: 9px; } th, td { border: 1px solid #000; padding: 4px; } th { background: #eee; }</style></head>
+        <body><h2>Laporan Database Subjek</h2><table><thead><tr>
+        <th>Nama</th><th>ID</th><th>IQ</th><th>EQ</th><th>Dominasi</th><th>Kecerdasan</th><th>Kemampuan</th></tr></thead><tbody>`;
+        fullData.forEach(d => {
+            html += `<tr><td>${d.nama}</td><td>${d.id}</td><td>${d.iq}</td><td>${d.eq}</td>
+            <td>${d.dominasi_otak?.dominasi || ''}</td>
+            <td>${Object.entries(d.kecerdasan_majemuk||{}).map(([k,v])=>`${k}: ${v.kategori}`).join(', ')}</td>
+            <td>${Object.entries(d.kemampuan_alami||{}).map(([k,v])=>`${k}: ${v.kategori}`).join(', ')}</td></tr>`;
+        });
+        html += `</tbody></table></body></html>`;
+        const w = window.open('', '_blank'); w.document.write(html); w.document.close();
+        setTimeout(() => w.print(), 300);
+    }
+
+    // ==================== EXPORT (tidak berubah) ====================
+    function getFlatData() {
+        return fullData.map(d => {
+            const parsed = parseAnalyzerNote(d.analyzer_note);
+            return {
+                nama: d.nama||'', id: d.id||'', tanggal: d.tanggal||'', gender: d.gender||'',
+                pola_sjb: parsed.pola, atd_kiri: parsed.atdKiri, atd_kanan: parsed.atdKanan,
+                otak_kiri: d.dominasi_otak?.kiri||0, otak_kanan: d.dominasi_otak?.kanan||0,
+                perbedaan: d.dominasi_otak?.perbedaan||0, dominasi: d.dominasi_otak?.dominasi||'',
+                iq: d.iq||0, eq: d.eq||0, level_unik: d.level_unik||0,
+                normalitas: d.karakter?.normalitas||'', komunikasi: d.komunikasi||'',
+                inisiatif: d.inisiatif||'', kebosanan: d.kebosanan||'',
+                pendapat: d.pendapat||'', analisa: d.analisa||'', kepatuhan: d.kepatuhan||'',
+                tipe_personal: d.tipe_personal||'',
+                cara_belajar: d.pls?.cara_belajar||'', kelebihan: d.pls?.kelebihan||'', kelemahan: d.pls?.kelemahan||'',
+                pola_laki: d.pola_hidup?.laki_laki||'', pola_perempuan: d.pola_hidup?.perempuan||'',
+                keterangan: d.keterangan||'',
+                kecerdasan_majemuk: JSON.stringify(d.kecerdasan_majemuk||{}),
+                kemampuan_alami: JSON.stringify(d.kemampuan_alami||{}),
+                gaya_kerja: JSON.stringify(d.gaya_kerja||{}),
+                tipe_belajar: JSON.stringify(d.tipe_belajar||{}),
+                motivasi: JSON.stringify(d.motivasi||{}),
+                prioritas: JSON.stringify(d.prioritas||{}),
+                analyzer_note: d.analyzer_note||''
+            };
+        });
+    }
+
+    function exportCSV() {
+        if (!fullData.length) return alert('Tidak ada data.');
+        const flat = getFlatData(); const headers = Object.keys(flat[0]);
+        const csv = [headers.join(','), ...flat.map(r => headers.map(h => `"${String(r[h]||'').replace(/"/g,'""')}"`).join(','))].join('\n');
+        const blob = new Blob(['\uFEFF'+csv], { type: 'text/csv;charset=utf-8;' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+        a.download = `nafta_data_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+        showToast('📥 CSV diekspor');
+    }
+
+    function exportXLSX() {
+        if (!fullData.length) return alert('Tidak ada data.');
+        const flat = getFlatData();
+        const ws = XLSX.utils.json_to_sheet(flat); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Data');
+        XLSX.writeFile(wb, `nafta_data_${new Date().toISOString().slice(0,10)}.xlsx`);
+        showToast('📊 Excel diekspor');
+    }
+
+    function exportJSON() {
+        if (!fullData.length) return alert('Tidak ada data.');
+        const jsonStr = JSON.stringify(fullData, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+        a.download = `nafta_data_${new Date().toISOString().slice(0,10)}.json`; a.click();
+        showToast('📥 JSON diekspor');
+    }
+
+    // ==================== IMPORT (tidak berubah) ====================
+    function handleJsonUpload(event) {
+        const file = event.target.files[0]; if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try { const imported = JSON.parse(e.target.result); if (Array.isArray(imported)) loadData(imported, true); else alert('Format file tidak valid.'); }
+            catch (err) { alert('Gagal parsing file JSON.'); }
+        };
+        reader.readAsText(file); event.target.value = '';
+    }
+
+    function handleCsvUpload(event) {
+        const file = event.target.files[0]; if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const data = parseCSV(e.target.result);
+            if (!data.length) return alert('CSV kosong atau format salah.');
+            loadData(data, true);
+        };
+        reader.readAsText(file); event.target.value = '';
+    }
+
+    function parseCSV(csv) {
+        const lines = csv.split(/\r?\n/).filter(l => l.trim());
+        if (lines.length < 2) return [];
+        const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+        return lines.slice(1).map(line => {
+            const vals = []; let cur = '', q = false;
+            for (let c of line) { if (q) { if (c == '"') q = false; else cur += c; } else { if (c == '"') q = true; else if (c === ',') { vals.push(cur.trim()); cur = ''; } else cur += c; } }
+            vals.push(cur.trim());
+            const obj = {};
+            headers.forEach((h, i) => { let v = vals[i] || ''; if (v.startsWith('{') || v.startsWith('[')) try { v = JSON.parse(v); } catch {} obj[h] = v; });
+            return obj;
+        });
+    }
+
+    // ==================== UTILITY (hanya copySubjectData yang diubah) ====================
+    function copySubjectData() {
+        if (!currentSubject) return alert('Pilih subjek dulu.');
+        const d = currentSubject;
+        const parsed = parseAnalyzerNote(d.analyzer_note);
+        const otak = d.dominasi_otak || {};
+
+        // Fungsi bantu untuk format kecerdasan/kemampuan
+        const formatList = (obj) => {
+            if (!obj || Object.keys(obj).length === 0) return 'Tidak ada data.';
+            return Object.entries(obj).map(([key, val]) => {
+                const label = key.replace(/_/g, ' ');
+                return `${label}: ${val.kategori || '?'} (${val.nilai || 0})`;
+            }).join('\n');
+        };
+
+        const kecerdasanText = formatList(d.kecerdasan_majemuk);
+        const kemampuanText = formatList(d.kemampuan_alami);
+
+        const handout = `========================================
+HANDOUT HASIL ANALISA GENETIK
+========================================
+
+Nama               : ${d.nama}
+ID                 : ${d.id}
+Tanggal Analisa    : ${d.tanggal}
+Pola SJB           : ${parsed.pola}
+ATD Kiri           : ${parsed.atdKiri}
+ATD Kanan           : ${parsed.atdKanan}
+
+--- IQ & EQ ---
+IQ                  : ${d.iq}
+EQ                  : ${d.eq}
+Normalitas          : ${d.karakter?.normalitas || '-'}
+
+--- DOMINASI OTAK ---
+Otak Kiri           : ${otak.kiri || 0}%
+Otak Kanan          : ${otak.kanan || 0}%
+Perbedaan           : ${otak.perbedaan || 0}%
+Dominasi            : ${otak.dominasi || '-'}
+
+--- TIPE PERSONAL ---
+Tipe Personal       : ${d.tipe_personal || '_'}
+Inisiatif           : ${d.inisiatif || '-'}
+Kebosanan           : ${d.kebosanan || '-'}
+Pendapat            : ${d.pendapat || '-'}
+Kepatuhan           : ${d.kepatuhan || '-'}
+Komunikasi          : ${d.komunikasi || '-'}
+
+--- KECERDASAN MAJEMUK ---
+${kecerdasanText}
+
+--- KEMAMPUAN ALAMI ---
+${kemampuanText}
+
+--- GAYA KERJA ---
+${d.gaya_kerja ? Object.entries(d.gaya_kerja).map(([k,v])=>`${k.replace(/_/g,' ')}: ${v.kategori||'?'} (${v.nilai||0})`).join('\n') : '-'}
+
+--- MOTIVASI ---
+Afektif   : ${d.motivasi?.afektif || 0}%
+Kognitif   : ${d.motivasi?.kognitif || 0}%
+Kritis     : ${d.motivasi?.kritis || 0}%
+Reflektif  : ${d.motivasi?.reflektif || 0}%
+
+--- POLA HIDUP ---
+Laki-laki   : ${d.pola_hidup?.laki_laki || '-'}
+Perempuan   : ${d.pola_hidup?.perempuan || '-'}
+
+--- KETERANGAN TAMBAHAN ---
+${d.keterangan || '-'}
+`;
+
+        const fullText = `Catatan dalam membaca Hasil analisa:
+
+• Hasil skor IQ dan EQ menggambarkan range nilai 90-140
+• Arti kode pola SJB: A (Arch), C (Ulnar Loop), E (Whorl Konsentris), B (Tented Arch), D (Radial Loop), F (Whorl Spiral), G (Whorl Oval), H (Whorl Composite), I (Whorl Implan), J (Bulu Merak), K (Varian).
+• Urutan jari Pola SJB: dari kelingking kiri hingga kelingking kanan.
+• Nilai Kualitatif: kurang (0), Sedang (1), Menonjol (2), Sangat Menonjol (3).
+• Kualitatif menggambarkan nilai kemampuan internal dan kenyamanan Subjek.
+• Hasil skor Kuantitatif (angka) menggambarkan range nilai 90-150, yaitu kemampuan yang bisa dibandingkan dengan orang lain.
+• Dalam Analisa ini, hasil kualitatif dan kuantitatif merupakan dua tabel analisa berbeda dan tidak saling berhubungan yang dijadikan satu. Jadi mungkin tidak equivalent antara kualitatif dan kuantitatif.
+• Level unik adalah skor subjek dalam merespon sesuatu, nilai 0-100. Normal 0-20, semakin tinggi semakin unik dan jika terlalu tinggi maka jadi aneh.
+        
+${handout}`;
+
+        navigator.clipboard.writeText(fullText);
+        showToast('📋 Data subjek disalin (format handout)');
+    }
+
+    // ==================== AI (tidak berubah) ====================
+    function openAIModal() { if (!currentSubject) return alert('Pilih subjek dulu.'); document.getElementById('aiModal').classList.add('active'); renderPromptTable(); renderAIChat(); }
+    function closeAIModal() { document.getElementById('aiModal').classList.remove('active'); }
+    function clearAI() { aiChat = []; renderAIChat(); }
+    async function askAI() {
+        const prompt = els.aiPrompt.value.trim(); if (!prompt) return;
+        aiChat.push({ role: 'user', text: prompt });
+        const key = localStorage.getItem('nafta_deepseek_key');
+        if (key) {
+            try {
+                const res = await fetch('https://api.deepseek.com/v1/chat/completions', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+                    body: JSON.stringify({ model: 'deepseek-chat', messages: [{ role: 'system', content: `Data: ${JSON.stringify(currentSubject)}` }, { role: 'user', content: prompt }] })
+                });
+                const data = await res.json(); aiChat.push({ role: 'ai', text: data.choices[0].message.content });
+            } catch { aiChat.push({ role: 'ai', text: 'Gagal terhubung ke AI.' }); }
+        } else { aiChat.push({ role: 'ai', text: 'API key tidak disetel.' }); }
+        els.aiPrompt.value = ''; renderAIChat();
+    }
+    function renderAIChat() { els.aiChatMessages.innerHTML = aiChat.map(m => `<p><b>${m.role==='user'?'Anda':'AI'}:</b> ${m.text}</p>`).join(''); }
+    function copyPromptToClipboard() { if (!currentSubject) return; const full = `[Data Subjek]\n${JSON.stringify(currentSubject, null, 2)}\n\n[Pertanyaan]\n${els.aiPrompt.value}`; navigator.clipboard.writeText(full); showToast('✅ Prompt disalin'); }
+
+    // ==================== SETTINGS (tidak berubah) ====================
+    function openSettingsModal() { document.getElementById('settingsModal').classList.add('active'); document.getElementById('setTitle').value = localStorage.getItem('nafta_title')||''; document.getElementById('setApiKey').value = localStorage.getItem('nafta_deepseek_key')||''; }
+    function closeSettingsModal() { document.getElementById('settingsModal').classList.remove('active'); }
+    function saveSettings() { localStorage.setItem('nafta_title', document.getElementById('setTitle').value); localStorage.setItem('nafta_deepseek_key', document.getElementById('setApiKey').value); loadSettings(); closeSettingsModal(); showToast('✅ Disimpan'); }
+
+    function showToast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 2500); }
+    function toggleRibbon() { const ribbon = document.getElementById('ribbonContainer'); const icon = document.getElementById('toggleRibbonBtn').querySelector('i'); ribbon.classList.toggle('hidden'); icon.className = ribbon.classList.contains('hidden') ? 'fas fa-chevron-down' : 'fas fa-chevron-up'; }
+
+    // ==================== PDF PARSER (tidak berubah) ====================
+    async function handlePdfLoad(e) {
+        const file = e.target.files[0]; if (!file) return;
+        try {
+            const buf = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+            const persons = [];
+            for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                const page = await pdf.getPage(pageNum);
+                const content = await page.getTextContent();
+                const pageText = content.items.map(it => it.str).join(' ');
+                const data = parseSingleReport(pageText);
+                if (data && data.nama && data.nama !== '_') persons.push(data);
+            }
+            if (persons.length === 0) { alert('Tidak ada data yang berhasil diparsing dari PDF.'); return; }
+            loadData(persons, true);
+            showToast(`✅ ${persons.length} subjek berhasil dimuat dari PDF.`);
+        } catch (error) { alert('Gagal membaca PDF: ' + error.message); }
+        e.target.value = '';
+    }
+
+    function parseSingleReport(text) {
+        const clean = text.replace(/\s+/g, ' ').trim();
+        const d = {};
+        const namaMatch = clean.match(/Membaca Fitrah Genetik Melalui Sidik Jari\s+([A-Z][A-Z\s]+?)\s+ID\s+(\d+)/i) || clean.match(/([A-Z][A-Z\s]+?)\s+ID\s+(\d+)/i);
+        d.nama = namaMatch ? namaMatch[1].trim() : '_';
+        d.id = namaMatch ? namaMatch[2] : (clean.match(/ID\s+(\d+)/i) || [])[1] || '_';
+        const dateMatch = clean.match(/Date\s+(\d{1,2}\s*[-–/\s]\s*\d{1,2}\s*[-–/\s]\s*\d{2,4}|\d{1,2}\s+\w+\s+\d{4})/i);
+        d.tanggal = dateMatch ? dateMatch[1].replace(/\s+/g, ' ').trim() : '_';
+        const extractNum = (label) => {
+            const regex = new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*[:]?\\s*([\\d,.]+)', 'i');
+            const m = clean.match(regex); return m ? parseFloat(m[1].replace(',', '.')) : 0;
+        };
+        d.otak_kiri = extractNum('Otak Kiri'); d.otak_kanan = extractNum('Otak Kanan');
+        d.iq = extractNum('IQ'); d.eq = extractNum('EQ');
+        d.level_unik = parseInt(extractNum('Level Unik')) || 0;
+        const noteMatch = clean.match(/Analyzer'?s?\s*Note\s*([A-Z]+-\w+)\s+([\d\-]+)\s+([\d\-]+)/i);
+        d.analyzer_note = noteMatch ? `${noteMatch[1]} ${noteMatch[2]} ${noteMatch[3]}` : '';
+        function extractBetween(startLabel, endLabel) {
+            const escapedStart = startLabel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const escapedEnd = endLabel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(escapedStart + '\\s*[:]?\\s*(.*?)\\s*' + escapedEnd, 'i');
+            const m = clean.match(regex); return m ? m[1].trim() : '';
+        }
+        d.normalitas = extractBetween('Normalitas', 'Komunikasi') || 'Normal';
+        d.komunikasi = extractBetween('Komunikasi', 'Tipe Personal') || extractBetween('Komunikasi', 'Inisiatif') || 'Baik';
+        d.tipe_personal = extractBetween('Tipe Personal', 'Inisiatif') || '_';
+        d.inisiatif = extractBetween('Inisiatif', 'Kebosanan') || 'Baik';
+        d.kebosanan = extractBetween('Kebosanan', 'Pendapat') || 'Normal';
+        d.pendapat = extractBetween('Pendapat', 'Analisa') || 'Baik';
+        d.analisa = extractBetween('Analisa', 'Kepatuhan') || 'Baik';
+        d.kepatuhan = extractBetween('Kepatuhan', 'Level Unik') || extractBetween('Kepatuhan', 'Prioritas') || 'Baik';
+        const kecLabels = ['Intra Personal', 'Logika Matematika', 'Bahasa', 'Inter Personal', 'Body Kinestetis', 'Musikal', 'Naturalis', 'Visual 2D', 'Visual 3D'];
+        d.kecerdasan_majemuk = {};
+        kecLabels.forEach(label => {
+            const regex = new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s+(Sangat Menonjol|Menonjol|Sedang)\\s*(\\d+)?', 'i');
+            const m = clean.match(regex);
+            d.kecerdasan_majemuk[label.toLowerCase().replace(/\s+/g, '_')] = m ? { nilai: m[2] ? parseInt(m[2]) : 0, kategori: m[1] } : { nilai: 0, kategori: '_' };
+        });
+        const kemLabels = ['Penalaran', 'Pengendalian Diri', 'Mengelola Angka', 'Motorik Halus', 'Pemahaman', 'Kreativitas', 'Kepemimpinan', 'Konsep Seni', 'Imajinasi', 'Motorik Kasar', 'Pola Abstrak', 'Menggambar', 'Analisa Ukur', 'Analisa Seni', 'Psikologi', 'Akademisi', 'Ketekunan', 'Kemandirian'];
+        d.kemampuan_alami = {};
+        kemLabels.forEach(label => {
+            const regex = new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s+(Sangat Menonjol|Menonjol|Sedang)\\s*(\\d+)?', 'i');
+            const m = clean.match(regex);
+            d.kemampuan_alami[label.toLowerCase().replace(/\s+/g, '_')] = m ? { nilai: m[2] ? parseInt(m[2]) : 0, kategori: m[1] } : { nilai: 0, kategori: '_' };
+        });
+        const gayaLabels = ['Pembangun', 'Pengambil Kesimpulan', 'Pelaku', 'Komunikator', 'Deal Maker', 'Pedagang', 'Pencipta'];
+        d.gaya_kerja = {};
+        gayaLabels.forEach(label => {
+            const regex = new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s+(Sangat Menonjol|Menonjol|Sedang)\\s*(\\d+)?', 'i');
+            const m = clean.match(regex);
+            d.gaya_kerja[label.toLowerCase().replace(/\s+/g, '_')] = m ? { nilai: m[2] ? parseInt(m[2]) : 0, kategori: m[1] } : { nilai: 0, kategori: '_' };
+        });
+        const tipeLabels = ['Visual', 'Audio', 'Kinestetik', 'Thinker', 'Imaginator'];
+        d.tipe_belajar = {};
+        tipeLabels.forEach(label => {
+            const regex = new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s+(Sangat Menonjol|Menonjol|Sedang)\\s*(\\d+)?', 'i');
+            const m = clean.match(regex);
+            d.tipe_belajar[label.toLowerCase()] = m ? { nilai: m[2] ? parseInt(m[2]) : 0, kategori: m[1] } : { nilai: 0, kategori: '_' };
+        });
+        const priorLabels = ['Sosial', 'Keuntungan', 'Popularitas', 'Pemenang', 'Kebebasan', 'Kedamaian', 'Pengetahuan', 'Kemewahan', 'Kenyamanan', 'Distinksi', 'Kekuasaan', 'Pengakuan', 'Sanjungan'];
+        d.prioritas = {};
+        priorLabels.forEach(label => {
+            const regex = new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s+(\\d+,\\d+)%', 'i');
+            const m = clean.match(regex);
+            d.prioritas[label.toLowerCase()] = m ? parseFloat(m[1].replace(',', '.')) : 0;
+        });
+        d.motivasi = {
+            afektif: extractNum('Afektif'), kognitif: extractNum('Kognitif'),
+            kritis: extractNum('Kritis'), reflektif: extractNum('Reflektif')
+        };
+        const lakiMatch = clean.match(/Apabila Anda Laki-laki,?\s*(.+?)(?=Apabila Anda Perempuan|$)/is);
+        const perempuanMatch = clean.match(/Apabila Anda Perempuan,?\s*(.+?)(?=PLS|Keterangan|$)/is);
+        d.pola_hidup = {
+            laki_laki: lakiMatch ? lakiMatch[1].trim() : '',
+            perempuan: perempuanMatch ? perempuanMatch[1].trim() : ''
+        };
+        const plsMatch = clean.match(/PLS\s+(.+)/is);
+        if (plsMatch) {
+            const plsText = plsMatch[1];
+            d.pls = {
+                cara_belajar: (plsText.match(/Cara Belajar\s*:\s*(.+?)(?=Kelebihan|$)/i) || [])[1]?.trim() || '',
+                kelebihan: (plsText.match(/Kelebihan\s*:\s*(.+?)(?=Kelemahan|$)/i) || [])[1]?.trim() || '',
+                kelemahan: (plsText.match(/Kelemahan\s*:\s*(.+?)(?=$)/i) || [])[1]?.trim() || ''
+            };
+        } else d.pls = {};
+        d.keterangan = extractBetween('Keterangan', 'Kecerdasan Majemuk') || extractBetween('Keterangan', 'Intra Personal') || extractBetween('Keterangan', 'Logika Matematika') || extractBetween('Keterangan', 'Bahasa') || '';
+        return {
+            nama: d.nama, id: d.id, tanggal: d.tanggal,
+            analyzer_note: d.analyzer_note || '',
+            dominasi_otak: { kiri: d.otak_kiri, kanan: d.otak_kanan, perbedaan: Math.abs(d.otak_kiri - d.otak_kanan), dominasi: d.otak_kiri > d.otak_kanan + 1 ? 'Kiri' : d.otak_kanan > d.otak_kiri + 1 ? 'Kanan' : 'Seimbang' },
+            iq: d.iq, eq: d.eq, level_unik: d.level_unik,
+            karakter: { normalitas: d.normalitas || 'Normal' },
+            komunikasi: d.komunikasi || 'Baik', inisiatif: d.inisiatif || 'Baik',
+            kebosanan: d.kebosanan || 'Normal', pendapat: d.pendapat || 'Baik',
+            analisa: d.analisa || 'Baik', kepatuhan: d.kepatuhan || 'Baik',
+            tipe_personal: d.tipe_personal || '_',
+            kecerdasan_majemuk: d.kecerdasan_majemuk || {},
+            kemampuan_alami: d.kemampuan_alami || {},
+            gaya_kerja: d.gaya_kerja || {},
+            tipe_belajar: d.tipe_belajar || {},
+            prioritas: d.prioritas || {},
+            motivasi: d.motivasi || {},
+            pls: d.pls || {},
+            pola_hidup: d.pola_hidup || {},
+            keterangan: d.keterangan || ''
+        };
+    }
+
+    // File drop
+    document.getElementById('fileInput').addEventListener('change', e => e.target.files[0] && handleFile(e.target.files[0]));
+    document.getElementById('dropZone').addEventListener('dragover', e => { e.preventDefault(); e.currentTarget.classList.add('drag-over'); });
+    document.getElementById('dropZone').addEventListener('dragleave', e => { e.currentTarget.classList.remove('drag-over'); });
+    document.getElementById('dropZone').addEventListener('drop', e => { e.preventDefault(); e.currentTarget.classList.remove('drag-over'); e.dataTransfer.files[0] && handleFile(e.dataTransfer.files[0]); });
+
+    function handleFile(file) {
+        if (file.name.endsWith('.json')) {
+            const r = new FileReader();
+            r.onload = e => { try { const d = JSON.parse(e.target.result); if (!Array.isArray(d)) throw new Error(); loadData(d, true); } catch { alert('JSON invalid'); } };
+            r.readAsText(file);
+        } else if (file.name.endsWith('.csv')) {
+            const reader = new FileReader();
+            reader.onload = e => { const data = parseCSV(e.target.result); if (!data.length) return alert('CSV kosong.'); loadData(data, true); };
+            reader.readAsText(file);
+        }
+    }
+</script>
+</body>
+</html>
